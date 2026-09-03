@@ -1,0 +1,107 @@
+  <script>
+    const monthSelect = document.getElementById('monthSelect');
+    const yearInput = document.getElementById('yearInput');
+    const calendar = document.getElementById('calendar');
+    const workCountEl = document.getElementById('workCount');
+    const offCountEl = document.getElementById('offCount');
+
+    const monthNames = [
+      "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+      "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+    ];
+
+    const date = new Date();
+    let currentMonth = date.getMonth();
+    let currentYear = date.getFullYear();
+
+    // Inicializa os meses no select
+    monthNames.forEach((month, index) => {
+      const option = document.createElement('option');
+      option.value = index;
+      option.textContent = month;
+      if (index === currentMonth) option.selected = true;
+      monthSelect.appendChild(option);
+    });
+
+    yearInput.value = currentYear;
+
+    function getStorageKey(year, month) {
+      return `work_tracker_${year}_${month}`;
+    }
+
+    function loadData(year, month) {
+      const saved = localStorage.getItem(getStorageKey(year, month));
+      return saved ? JSON.parse(saved) : {};
+    }
+
+    function saveData(year, month, data) {
+      localStorage.setItem(getStorageKey(year, month), JSON.stringify(data));
+    }
+
+    function renderCalendar() {
+      calendar.innerHTML = '';
+      const daysData = loadData(currentYear, currentMonth);
+
+      const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+      const totalDays = new Date(currentYear, currentMonth + 1, 0).getDate();
+
+      // Espaços em branco antes do primeiro dia do mês
+      for (let i = 0; i < firstDay; i++) {
+        const emptyCell = document.createElement('div');
+        emptyCell.classList.add('day', 'empty');
+        calendar.appendChild(emptyCell);
+      }
+
+      let workCount = 0;
+      let offCount = 0;
+
+      for (let day = 1; day <= totalDays; day++) {
+        const dayEl = document.createElement('div');
+        dayEl.classList.add('day');
+        dayEl.textContent = day;
+
+        const status = daysData[day];
+        if (status === 'trabalhou') {
+          dayEl.classList.add('trabalhou');
+          workCount++;
+        } else if (status === 'nao-trabalhou') {
+          dayEl.classList.add('nao-trabalhou');
+          offCount++;
+        }
+
+        dayEl.addEventListener('click', () => {
+          if (!daysData[day]) {
+            daysData[day] = 'trabalhou';
+          } else if (daysData[day] === 'trabalhou') {
+            daysData[day] = 'nao-trabalhou';
+          } else {
+            delete daysData[day];
+          }
+
+          saveData(currentYear, currentMonth, daysData);
+          renderCalendar();
+        });
+
+        calendar.appendChild(dayEl);
+      }
+
+      workCountEl.textContent = workCount;
+      offCountEl.textContent = offCount;
+    }
+
+    monthSelect.addEventListener('change', (e) => {
+      currentMonth = parseInt(e.target.value);
+      renderCalendar();
+    });
+
+    // CORREÇÃO: Trata a digitação fluida do ano sem resetar no meio da escrita
+    yearInput.addEventListener('input', (e) => {
+      const val = parseInt(e.target.value);
+      if (val >= 2000 && val <= 2100) {
+        currentYear = val;
+        renderCalendar();
+      }
+    });
+
+    renderCalendar();
+  </script>
